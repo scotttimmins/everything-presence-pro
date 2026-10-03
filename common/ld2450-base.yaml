@@ -346,7 +346,6 @@ number:
     restore_value: true
     initial_value: 0
     icon: "mdi:angle-acute"
-    entity_category: config
   - platform: template
     name: "Tracking Scale"
     id: tracking_scale
