@@ -5,11 +5,17 @@ globals:
 
 binary_sensor:
   - platform: gpio
+    id: dfrobot_pin
+    internal: true
+    pin:
+      number: GPIO34
+
+  # Gated by the enable switch: the sensor's output pin can stay high after sensorStop
+  - platform: template
     name: Static Presence
     id: dfrobot_presence
     device_class: occupancy
-    pin:
-      number: GPIO34
+    lambda: 'return id(dfrobot_sensor).state && id(dfrobot_pin).state;'
 
 switch:
   - platform: template
