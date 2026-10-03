@@ -333,6 +333,19 @@ number:
     restore_value: true
     initial_value: 0
     icon: "mdi:angle-acute"
+  - platform: template
+    name: "Tracking Sensor Angle Vertical"
+    id: ld2450_installation_angle_y
+    entity_category: config
+    unit_of_measurement: "º"
+    min_value: 0
+    max_value: 45
+    step: 1
+    update_interval: never
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    icon: "mdi:angle-acute"
 
   - platform: template
     name: "Zone 1 Timeout"
@@ -923,6 +936,23 @@ uart:
 
           float max_distance = float(id(ld2450_max_distance).state) * 10;
           float installation_angle = id(ld2450_installation_angle).state * DEGREES_TO_RADIANS;
+          float installation_angle_y = id(ld2450_installation_angle_y).state * DEGREES_TO_RADIANS;
+
+          // Decode LD2450 sign-magnitude coordinate, optionally flip x, and
+          // foreshorten by cos(vertical tilt).
+          auto get_x_position = [](int16_t px, float angle_y, bool flip) -> float {
+            if (px < 0) px += MIN_INT16_VAL;
+            else px = -px;
+            if (flip) px = -px;
+            if (angle_y == 0) return px;
+            return px * cos(angle_y);
+          };
+          auto get_y_position = [](int16_t py, float angle_y) -> float {
+            if (py < 0) py += MIN_INT16_VAL;
+            else py = -py;
+            if (angle_y == 0) return py;
+            return py * cos(angle_y);
+          };
 
           const static int MAX_POLY_VERTICES = 20;
 
@@ -1048,19 +1078,9 @@ uart:
           };
 
           if (p1_detected) {
-            int16_t p1_x = *((int16_t *)(&bytes[4]));
-            if (p1_x < 0) p1_x += MIN_INT16_VAL;
-            else p1_x = -p1_x;
-
-            int16_t p1_y = *((int16_t *)(&bytes[6]));
-            if (p1_y < 0) p1_y += MIN_INT16_VAL;
-            else p1_y = -p1_y;
-
+            float p1_x = get_x_position(*((int16_t *)(&bytes[4])), installation_angle_y, !id(ld2450_upside_down).state);
+            float p1_y = get_y_position(*((int16_t *)(&bytes[6])), installation_angle_y);
             float p1_distance = sqrt(p1_x * p1_x + p1_y * p1_y);
-            
-            if (!id(ld2450_upside_down).state) {
-              p1_x = -p1_x;
-            }
             
             if (p1_distance > max_distance) {
               p1_detected = false;
@@ -1159,19 +1179,9 @@ uart:
           target_masked = false;
 
           if (p2_detected) {
-            int16_t p2_x = *((int16_t *)(&bytes[12]));
-            if (p2_x < 0) p2_x += MIN_INT16_VAL;
-            else p2_x = -p2_x;
-
-            int16_t p2_y = *((int16_t *)(&bytes[14]));
-            if (p2_y < 0) p2_y += MIN_INT16_VAL;
-            else p2_y = -p2_y;
-
+            float p2_x = get_x_position(*((int16_t *)(&bytes[12])), installation_angle_y, !id(ld2450_upside_down).state);
+            float p2_y = get_y_position(*((int16_t *)(&bytes[14])), installation_angle_y);
             float p2_distance = sqrt(p2_x * p2_x + p2_y * p2_y);
-            
-            if (!id(ld2450_upside_down).state) {
-              p2_x = -p2_x;
-            }
             
             if (p2_distance > max_distance) {
               p2_detected = false;
@@ -1269,19 +1279,9 @@ uart:
           target_masked = false;
 
           if (p3_detected) {
-            int16_t p3_x = *((int16_t *)(&bytes[20]));
-            if (p3_x < 0) p3_x += MIN_INT16_VAL;
-            else p3_x = -p3_x;
-
-            int16_t p3_y = *((int16_t *)(&bytes[22]));
-            if (p3_y < 0) p3_y += MIN_INT16_VAL;
-            else p3_y = -p3_y;
-
+            float p3_x = get_x_position(*((int16_t *)(&bytes[20])), installation_angle_y, !id(ld2450_upside_down).state);
+            float p3_y = get_y_position(*((int16_t *)(&bytes[22])), installation_angle_y);
             float p3_distance = sqrt(p3_x * p3_x + p3_y * p3_y);
-            
-            if (!id(ld2450_upside_down).state) {
-              p3_x = -p3_x;
-            }
             
             if (p3_distance > max_distance) {
               p3_detected = false;
